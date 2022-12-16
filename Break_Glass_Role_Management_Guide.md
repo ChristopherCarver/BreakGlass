@@ -76,16 +76,18 @@ _Instructions:_
 ---
 ## Break glass role
 \
-The [u_break_glass_role] table contains all of the break glass roles available. This table will need to be manually populated by the admin. 
+The _Break Glass Role_ [u_break_glass_role] table contains all of the break glass roles available. This table will need to be manually populated by the admin. 
 
-The [u_break_glass_role] table will contain the following custom fields:
+The _Break Glass Role_ [u_break_glass_role] table will contain the following custom fields:
 |Field|Description|
 |-----|-----------|
 |Name|The name of the break glass role.|
 |Description|A description of the break glass role.|
-|Role|Reference to the role in the [sys_user_role] table.|
-|User Criteria|What users the role is available to.|
+|Role|Reference to the ServiceNow OOTB table _Role_ [sys_user_role].|
+|User Criteria|Reference to the ServiceNow OOTB table _User Criteria_ [user_criteria].|
 |Lifespan|The number of minutes an account can be granted the role; default 4 hours.|
+|Expiring|When the break glass role is 90% near expired. This is calculated based on _Lifespan_.|
+|Expires|When the break glass role expires. This is calculated based on _Lifespan_.|
 
 _Instructions:_
 
@@ -138,12 +140,79 @@ _Instructions:_
 1. In the **Default Value** tab, fill in the following field:
     - _Default Value:_ 240
 1. Click **Update**.
+1. In the **Columns** table, click **New**.
+1. In the **Dictionary Entry New record** section, fill in the following fields:
+    - _Type:_ True/False
+    - _Column label:_ Expiring
+    - _Column name:_ (this should default to u_expiring)
+1. Under **Related Links**, click **Advanced view**.
+1. In the **Calculated Value** tab, fill in the following fields:
+    - _Calculated:_ true
+    - _Calculation Type:_ Script
+    - _Calculation:_
+        ```
+        (function calculatedFieldValue(current) {
+
+            var lifespan = current.getValue('u_lifespan'); // minutes
+            var lifespanExpiring = parseInt(lifespan * 0.9, 10); // 90% of the lifespan in minutes
+        
+            var now = new GlideDateTime();
+            now.addSeconds(lifespanExpiring * 60);
+            var expiring = now.getDisplayValue();
+            
+            var date = expiring.toString().split(" ")[0];
+            var time = expiring.toString().split(" ")[1];
+            var hours = time.split(":")[0];
+            var minutes = time.split(":")[1];
+            var finalExpiring = date + " " + hours + ":" + minutes + ":00";
+            
+            current.setValue('u_expiring', finalExpiring);
+            return finalExpiring; // return the calculated value
+        
+        })(current);
+        ```
+1. Click **Submit**.
+1. In the **Columns** table, click **New**.
+1. In the **Dictionary Entry New record** section, fill in the following fields:
+    - _Type:_ True/False
+    - _Column label:_ Expires
+    - _Column name:_ (this should default to u_expires)
+1. Under **Related Links**, click **Advanced view**.
+1. In the **Calculated Value** tab, fill in the following fields:
+    - _Calculated:_ true
+    - _Calculation Type:_ Script
+    - _Calculation:_
+        ```
+        (function calculatedFieldValue(current) {
+
+            var lifespan = current.getValue('u_lifespan'); // minutes
+            
+            var now = new GlideDateTime();
+            now.addSeconds(lifespan * 60);
+            var expires = now.getDisplayValue();
+            
+            var date = expires.toString().split(" ")[0];
+            var time = expires.toString().split(" ")[1];
+            var hours = time.split(":")[0];
+            var minutes = time.split(":")[1];
+            var seconds = time.split(":")[2];
+            if(seconds >= 30) {
+                minutes += 1;
+            }
+            var finalExpires = date + " " + hours + ":" + minutes + ":00";
+            
+            current.setValue('u_expires', finalExpires);
+            return finalExpires;
+        
+        })(current);
+        ```
+1. Click **Submit**.
 1. Click **Update**.
 
 ---
 ## Break glass role slush bucket
 \
-The [u_break_glass_role] table is referenced by the _Break Glass Roles_ catalog item and the reference fields need to defined in a slush bucket for selection. 
+The _Break Glass Role_ [u_break_glass_role] table is referenced by the _Break Glass Roles_ catalog item and the reference fields need to defined in a slush bucket for selection. 
 
 1. In the browser URL type in **https://_{your instance}_/u_break_glass_role_list.do?sysparm_view=sys_ref_list**, where {your instance} is the name of your ServiceNow instance.
 1. Right-click in the table column header and select **Configure** > **List Layout**. 
@@ -156,19 +225,17 @@ The [u_break_glass_role] table is referenced by the _Break Glass Roles_ catalog 
 ---
 ## Break glass user role
 \
-The [u_break_glass_user_role] table contains the relationship between the account and the break glass role. This table should be maintained by the catalog item **Break Glass Account Management** and the supporting flow. 
+The _Break Glass User Role_ [u_break_glass_user_has_role] table contains the relationship between the account and the break glass role. This table should be maintained by the catalog item _Break Glass Account Management_ and the supporting flow. 
 
-The [u_break_glass_user_role] table will contain the following custom fields:
+The _Break Glass User Role_ [u_break_glass_user_has_role] table will contain the following custom fields:
 |Field|Description|
 |-----|-----------|
-|User|Reference to the account in the [sys_user] table.|
-|Role|Reference to the role in the [sys_user_role] table.|
+|User|Reference to the ServiceNow OOTB table _User_ [sys_user].|
+|Role|Reference to the custom table _Break Glass Role_ [u_break_glass_role].|
 |Active|Designation that the account has been granted the role.|
 |Expiration|When the role is set to expire on the account.|
-|Expired|Calculated column based on the *Expiration* column.|
-|Availability Begin|The start time the account can be granted the role; default 00:00:00.000.|
-|Availability End|The stop time the account can ne granted the role; default 23:59:59.999.|
-|Days of Week|The days of the week the account can be given the role; default. 1 - Monday, 2 - Tuesday, 3 - Wednesday, 4 - Thursday, 5 - Friday, 6 - Saturday, and 7 - Sunday.|
+|Expired|Answers if the break glass role has expired base on _Expiration_. This is calculated based on _Expiration_.|
+|Request item|Reference to the ServiceNow OOTB table _Requested Item_ [sc_req_item].|
 
 _Instructions:_
 
@@ -184,36 +251,39 @@ _Instructions:_
     - _Type:_ Reference
     - _Column label:_ User
     - _Column name:_ (this should default to u_user)
+    - _Mandatory:_ true
 1. In the **Reference Specification** tab, fill in the following field:
     - _Reference:_ User [sys_user]
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
     - _Type:_ Reference
-    - _Column label:_ Role
-    - _Column name:_ (this should default to u_role)
+    - _Column label:_ Break Glass Role
+    - _Column name:_ (this should default to u_break_glass_role)
+    - _Mandatory:_ true
 1. In the **Reference Specification** tab, fill in the following field:
-    - _Reference:_ Role [sys_user_role]
+    - _Reference:_ Role [u_break_glass_role]
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
     - _Type:_ True/False
     - _Column label:_ Active
     - _Column name:_ (this should default to u_active)
-1. In the record header, right-click and select **Save**.
+1. In the **Default Value** tab, fill in the following field:
+    - _Default Value:_ true
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
     - _Type:_ Date/Time
     - _Column label:_ Expiration
     - _Column name:_ (this should default to u_expiration)
+    - _Mandatory:_ true
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
     - _Type:_ True/False
     - _Column label:_ Expired
     - _Column name:_ (this should default to u_expired)
-1. In the record header, right-click and select **Save**.
 1. Under **Related Links**, click **Advanced view**.
 1. In the **Calculated Value** tab, fill in the following fields:
     - _Calculated:_ true
@@ -221,58 +291,36 @@ _Instructions:_
     - _Calculation:_
         ```
         (function calculatedFieldValue(current) {
+
+            // If there is no expiration set, return false.
+            if (current.u_expiration.nil()) {
+                current.setValue('u_expired',false);
+                return false;
+            }
         
-        	// If there is no expiration set, return false.
-        	if(current.u_expiration.nil()) {
-        		return false;
-        	}
-
-        	var dateToday = new GlideDateTime();
-        	// If the expiration is less than today's date and time, return false.
-        	if(current.u_expiration < dateToday) {
-        		return false;
-        	}
-
-        	// Default to true
-        	return true;  // return the calculated value
-
+            var dateToday = new GlideDateTime();
+            // If the expiration is less than today's date and time, return false.
+            if (current.u_expiration < dateToday) {
+                current.setValue('u_expired',false);
+                return false;
+            }
+        
+            // Default to true
+            current.setValue('u_expired',true);
+            return true; // return the calculated value
+        
         })(current);
         ```
-1. Click **Update**.
+1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
-    - _Type:_ Time
-    - _Column label:_ Availability Begin
-    - _Column name:_ (this should default to u_availability_begin)
-1. In the record header, right-click and select **Save**.
-1. In the **Default Value** tab, fill in the following field:
-    - _Default Value:_ 00:00:00
-1. Click **Update**.
-1. In the **Columns** table, click **New**.
-1. In the **Dictionary Entry New record** section, fill in the following fields:
-    - _Type:_ Time
-    - _Column label:_ Availability End
-    - _Column name:_ (this should default to u_availability_end)
-1. In the record header, right-click and select **Save**.
-1. In the **Default Value** tab, fill in the following field:
-    - _Default Value:_ 00:00:00
-1. Click **Update**.
-1. In the **Columns** table, click **New**.
-1. We need to table column type that is not offered by ServiceNow OOTB. We will temporarily make a change in ServiceNow to allow us to see other column types and then revert back to OOTB configuration. **Right-click** over **Type** field label and select **Configure Dictionary**.
-1. In the **Reference Specification** tab, change the following fields:
-    - _Use reference qualifier:_ Simple
-1. Click **Update**. 
-1. In the **Dictionary Entry New record** section, fill in the following fields:
-    - _Type:_ Days of Week
-    - _Column label:_ Days of Week
-    - _Column name:_ (this should default to u_days_of_week)
-1. In the record header, right-click and select **Save**.
-1. Now revert back to OOTB configuration. **Right-click** over **Type** field label and select **Configure Dictionary**.
-1. In the **Reference Specification** tab, change the following fields:
-    - _Use reference qualifier:_ Dynamic
-    - _Visible Only_ 
-1. Click **Update**.
-1. Click **Update**.
+    - _Type:_ Reference
+    - _Column label:_ Request item
+    - _Column name:_ (this should default to u_request_item)
+    - _Mandatory:_ true
+1. In the **Reference Specification** tab, fill in the following field:
+    - _Reference:_ Requested Item [sc_req_item].|
+1. Click **Submit**.
 1. Click **Update**.
 
 ---
@@ -288,18 +336,18 @@ _Instructions:_
     - _Name:_ BreakGlassUtil
     - _API Name:_ (this should default to global.BreakGlassUtil)
     - _Client callable:_ false
-    - _Description:_ Utility operations in the support for break glass roles. See [u_break_glass_role] and [u_break_glass_user_role] tables. 
+    - _Description:_ Utility operations in the support for break glass roles. See [u_break_glass_role] and [u_break_glass_user_has_role] tables. 
     - _Script:_
         ```
         var BreakGlassUtil = Class.create();
         BreakGlassUtil.prototype = {
             initialize: function() {},
 
-        	// returns a comma delimited string of break glass roles the user has access to
-        	getRoles: function() {
+            // returns a comma delimited string of break glass roles the user has access to
+            getRoles: function() {
                 var breakGlassRoleList = [];
 
-        		// get all the break glass roles
+                // get all the break glass roles
                 var breakGlassRole = new GlideRecord('u_break_glass_role');
                 breakGlassRole.query();
                 while (breakGlassRole.next()) {
@@ -307,7 +355,7 @@ _Instructions:_
                     criteria.push(breakGlassRole.getValue('u_user_criteria'));
                     // if the user matches the user criteria for the role
                     if (sn_uc.UserCriteriaLoader.userMatches(gs.getUserID(), criteria)) {
-        				// then store it in the array
+                        // then store it in the array
                         breakGlassRoleList.push(breakGlassRole.getValue('sys_id'));
                     }
                 }
@@ -355,12 +403,12 @@ _Instructions:_
 1. In the **Variable New record** section, fill in the following fields:
     - _Type:_ List Collector
     - _Mandatory:_ true
+    - _Order:_ 100
 1. In the **Question** tab, fill in the following fields:
     - _Question:_ Roles
-    - _Name:_ roles
+    - _Name:_ (should default to roles)
 1. In the **Type Specifications** tab, fill in the following fields:
-    - _Reference:_ Break Glass Role [u_break_glass_role]
-    - _Use reference qualifier:_ Advanced
+    - _List table:_ Break Glass Role [u_break_glass_role]
     - _Reference qualifier:_
         ```
         javascript: var query;
@@ -371,7 +419,17 @@ _Instructions:_
         ```
         no_filter,ref_auto_completer=AJAXTableCompleter,ref_ac_columns=u_name;u_description,ref_ac_order_by=u_name
         ```
+1. Click **Update**.
+1. In the **Variables** tab, click **New**.
+1. In the **Variable New record** section, fill in the following fields:
+    - _Type:_ Single Line Text
+    - _Mandatory:_ true
+    - _Order:_ 200
+1. In the **Question** tab, fill in the following fields:
+    - _Question:_ Justification
+    - _Name:_ (should default to justification)
 1. Click **Submit**.
+1. Click **Update**.
 
 ---
 ## Break Glass Roles Flow
@@ -380,7 +438,7 @@ The _Break Glass Roles Flow_ is a flow designer process engine for the _Break Gl
 
 _Instructions:_
 
-1. Navigate to **Process Automation** > **Flow Designer**.
+1. Navigate to **Process Automation** > **Flow Designer**. A new tab will open for _Flow Designer_.
 1. In **Flow Designer** click **New** and select **Flow**.
 1. In the **Flow properties** window, fill in the following fields:
     - _Flow name:_ CAT Break Glass Roles (*CAT represents this flow is associated with a catalog item*)
@@ -388,14 +446,23 @@ _Instructions:_
     - _Application:_ Global
     - _Run As:_ System User
 1. Click **Submit**.
-1. Click **Add a trigger** and under **Application** select **Service Catalog**.
+1. Click **More Actions menu** (the ... on top right) and select **Flow Variables**.
+1. Click **Add new input** (the + ) and fill in the following fields:
+    - _Label:_ Granted Role
+    - _Name:_ granted_role
+    - _Type:_ True/False
+1. Close the **Flow Variables** window. 
+1. Under **Trigger**, click **Add a trigger** and under **Application** select **Service Catalog**.
 1. Click **Done**.
-1. Under **Actions**, click **Action** > **ServiceNow Core** > **Get Catalog Variable**.
-1. In the **Get Catalog Variables** section, fill in the following fields:
-    - _Submitted Request [Requested Item]:_ *Click the  **Data Pill Picker for Submitted Request** and select **Trigger - Service Catalog** > **Requested Item Record**.*
-    - _Template Catalog Items and Variables Sets [Catalog Items and Variable Sets]:_ Break Glass Roles
-    - _Catalog Variables:_ *Under **Available** list click **roles** and then **>** to move to **Selected**.*
-1. Click **Done**.
+1. The following instructions are adding operations under the **Actions** section. Due to the difficulty of documenting flow operations, the folloing sub-ordered steps represent the order of flow operations. At the start of each action there will either be the choice **Add an Action, Flow Logic, or Subflow** or a grouping of **Action**, **Flow Logic**, and **Subflow**. The step will assume general knowledge of which to select and finalizing the operation by clicking **Done**. 
+    1. **Flow Logic** > **Set Flow Variables**, fill in the following variables:
+        - _Name:_ Granted Role
+        - _Data:_ false
+    1. **Action** > **ServiceNow Core** > **Get Catalog Variables**, fill in the following fields:
+        - _Submitted Request [Requested Item]:_ From the  **Data Pill Picker**, select **Trigger - Service Catalog** > **Requested Item Record**.*
+        - _Template Catalog Items and Variables Sets [Catalog Items and Variable Sets]:_ Break Glass Roles
+        - _Catalog Variables:_ *Under **Available** list click **roles** and then **>** to move to **Selected**.*
+    1. 
 
 
 
