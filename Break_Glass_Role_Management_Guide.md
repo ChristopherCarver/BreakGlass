@@ -300,7 +300,7 @@ _Instructions:_
         
             var dateToday = new GlideDateTime();
             // If the expiration is less than today's date and time, return false.
-            if (current.u_expiration < dateToday) {
+            if (current.u_expiration > dateToday) {
                 current.setValue('u_expired',false);
                 return false;
             }
