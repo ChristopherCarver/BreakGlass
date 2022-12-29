@@ -431,46 +431,70 @@ _Instructions:_
     ```
     (function execute(inputs, outputs) {
       var lifespan = inputs.lifespan;
-    
+      
       // calc. expiring 
-      var lifespanExpiring = parseInt(lifespan * 0.9, 10); // 90% of the    lifespan in minutes
+      var lifespanExpiring = parseInt(lifespan * 0.9, 10); // 90% of the lifespan in minutes
       var nowExpiring = new GlideDateTime();
       nowExpiring.addSeconds(lifespanExpiring * 60);
-      outputs.expiring = nowExpiring.getDisplayValue();
-    
+      outputs.expiring_system = nowExpiring.getValue();
+      outputs.expiring_local = nowExpiring.getDisplayValue();
+    	
       // calc. expires
       var nowExpires = new GlideDateTime();
       nowExpires.addSeconds(lifespan * 60);
-      outputs.expires = nowExpires.getDisplayValue();
-
+      outputs.expires_system = nowExpires.getValue();
+      outputs.expires_local = nowExpires.getDisplayValue();
+    
     })(inputs, outputs);
     ```
 1. Under **Output Variables**, click **Create Variable** and fill in the following fields:
-    - _Label:_ Expires
-    - _Name:_ expires
+    - _Label:_ Expiring System
+    - _Name:_ expiring_system
+    - _Type:_ [Date/Time]
+    - _Mandatory:_ [true]
+    1. Under **Output Variables**, click **Create Variable** and fill in the following fields:
+    - _Label:_ Expiring System
+    - _Name:_ expiring_local
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
 1. Under **Output Variables**, click **Create Variable** and fill in the following fields:
-    - _Label:_ Expiring
-    - _Name:_ expiring
+    - _Label:_ Expires System
+    - _Name:_ expires_system
+    - _Type:_ [Date/Time]
+    - _Mandatory:_ [true]
+1. Under **Output Variables**, click **Create Variable** and fill in the following fields:
+    - _Label:_ Expires Local
+    - _Name:_ expires_local
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
 1. Under **Action Outline**, click **Outputs**.
 1. Under **Action Output**, click **Edit Outputs**.
 1. Click **Create Output** and fill in the following fields:
-    - _Label:_ Expiring
-    - _Name:_ expiring
+    - _Label:_ Expiring System
+    - _Name:_ expiring_system
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
 1. Click **Create Output** and fill in the following fields:
-    - _Label:_ Expires
-    - _Name:_ expires
+    - _Label:_ Expiring Local
+    - _Name:_ expiring_local
+    - _Type:_ [Date/Time]
+    - _Mandatory:_ [true]
+1. Click **Create Output** and fill in the following fields:
+    - _Label:_ Expires System
+    - _Name:_ expires_system
+    - _Type:_ [Date/Time]
+    - _Mandatory:_ [true]
+1. Click **Create Output** and fill in the following fields:
+    - _Label:_ Expires Local
+    - _Name:_ expires_local
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
 1. Click **Exit Edit Mode**.
 1. Under **Action Output**, fill in the following fields:
-    - _Expiring:_ **Script Step > Expiring**
-    - _Expires:_ **Script Step > Expires**
+    - _Expiring System:_ **Script Step > Expiring System**
+    - _Expiring Local:_ **Script Step > Expiring Local**
+    - _Expires System:_ **Script Step > Expires System**
+    - _Expires Local:_ **Script Step > Expires Local**
 1. Click **Save**.
 1. Click **Publish**.
 
@@ -496,14 +520,6 @@ _Instructions:_
 1. Click **Submit**.
 1. Click **More Actions menu** (the ... on top right) and select **Flow Variables**.
 1. Click **Add new input** (the + ) and fill in the following fields:
-    - _Label:_ Expiring
-    - _Name:_ expiring
-    - _Type:_ [String]
-1. Click **Add new input** (the + ) and fill in the following fields:
-    - _Label:_ Expires
-    - _Name:_ expires
-    - _Type:_ [String]
-1. Click **Add new input** (the + ) and fill in the following fields:
     - _Label:_ Banner Label 
     - _Name:_ banner_label
     - _Type:_ [String]
@@ -524,8 +540,13 @@ _Instructions:_
     - _Type:_ (**Reference > Break Glass Role**)
     - _Mandatory:_ [true]
 1. Under **Inputs**, click the **+** sign and fill in the following fields:
-    - _Label:_ Expiring
-    - _Name:_ expiring
+    - _Label:_ Expiring Local
+    - _Name:_ expiring_local
+    - _Type:_ [Date/Time]
+    - _Mandatory:_ [true]
+1. Under **Inputs**, click the **+** sign and fill in the following fields:
+    - _Label:_ Expires Local
+    - _Name:_ expires_local
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
 1. Under **Inputs**, click the **+** sign and fill in the following fields:
@@ -538,42 +559,6 @@ _Instructions:_
     1. **Flow Logic > Set Flow Variables** (click the **+** sign to add a new variable):
         - _Name:_ User Role Name
         - _Data:_ u_user_(**Input > Request Item > Requested for > User ID**)
-        - _Name:_ Expiring
-        - _Data:_
-            ``` 
-            /*
-            **Access Flow/Action data using the fd_data object. Script must return a value.
-            **Available options display upon pressing "." after fd_data
-            **example: var shortDesc = fd_data.trigger.current.short_description;
-            **return shortDesc;
-            */
-
-            var expiring = new GlideDateTime(fd_data.subflow_inputs.expiring);
-            var expiringTZ = fd_data.subflow_inputs.request_item.requested_for.time_zone;
-            var tz = Packages.java.util.TimeZone.getTimeZone(expiringTZ);
-            expiring.setTZ(tz);
-            var timeZoneOffSet = expiring.getTZOffset();    
-            expiring.setNumericValue(expiring.getNumericValue() + timeZoneOffSet);
-            return expiring.getValue();        
-            ```
-        - _Name:_ Expires
-        - _Data:_
-            ```
-            /*
-            **Access Flow/Action data using the fd_data object. Script must return a value.
-            **Available options display upon pressing "." after fd_data
-            **example: var shortDesc = fd_data.trigger.current.short_description;
-            **return shortDesc;
-            */
-
-            var expires = new GlideDateTime(fd_data.subflow_inputs.expires);
-            var expiresTZ = fd_data.subflow_inputs.request_item.requested_for.time_zone;
-            var tz = Packages.java.util.TimeZone.getTimeZone(expiresTZ);
-            expires.setTZ(tz);
-            var timeZoneOffSet = expires.getTZOffset();    
-            expires.setNumericValue(expires.getNumericValue() + timeZoneOffSet);
-            return expires.getValue(); 
-            ```
         - _Name:_ Banner Label
         - _Data:_ break_glass_role.(**Input > Break Glass Role > Name**.**Input > Request Item > Requested for > User ID**)
     1. **Action > ServiceNow Core > Look Up Records**
@@ -602,7 +587,14 @@ _Instructions:_
         - _Fields:_
             - [Label] (**Flow Variables > Banner Label**)
             - [Heading] Break Glass Role Granted
-            - [Summary] Break glass role ' (**Input > Break Glass Role > Name**) ' will expire on (**Flow Variables > Expires**).
+            - [Summary] 
+                ```
+                var expires = new GlideDateTime(fd_data.subflow_inputs.expires);
+                var expiresTZ = fd_data.subflow_inputs.request_item.requested_for.time_zone;
+                var tz = Packages.java.util.TimeZone.getTimeZone(expiresTZ);
+                expires.setTZ(tz);
+                return "Break glass role '" + fd_data.subflow_inputs.break_glass_role.u_name + "' is set to expire on " + expires.getDisplayValue().toString() + ".";
+                ```
             - [Color] [Positive]
             - [Show for] [Users with specific roles/groups]
             - [Roles] (**8 - Look Up Record > Role Record > Name**)
@@ -622,12 +614,19 @@ _Instructions:_
         - _Fields:_
             - [Label] (**Flow Variables > Banner Label**)
             - [Heading] Break Glass Role Expiring
-            - [Summary] Break glass role '(**Input > Break Glass Role > Name**)' is about to expire on (**Flow Variables > Expires**).
+            - [Summary]
+                ```
+                var expires = new GlideDateTime(fd_data.subflow_inputs.expires);
+                var expiresTZ = fd_data.subflow_inputs.request_item.requested_for.time_zone;
+                var tz = Packages.java.util.TimeZone.getTimeZone(expiresTZ);
+                expires.setTZ(tz);
+                return "Break glass role '" + fd_data.subflow_inputs.break_glass_role.u_name + "' is set to expire on " + expires.getDisplayValue().toString() + ".";
+                ```
             - [Color] [Warning]
             - [Show for] [Users with specific roles/groups]
             - [Roles] (**8 - Look Up Record > Role Record > Name**)
-            - [Start] **Input > Expiring**
-            - [End] (**Input > Expires**)
+            - [Start] **Input > Expiring Local**
+            - [End] (**Input > Expires Local**)
     1. **Action > ServiceNow Core > Create Record**
         - _Table:_ Banner Announcement Mapping [sys_ux_m2m_banner_announcement]
         - _Fields:_
@@ -642,8 +641,7 @@ _Instructions:_
             - [Color] [Critical]
             - [Show for] [Users with specific roles/groups]
             - [Roles] (**8 - Look Up Record > Role Record > Name**)
-            - [Start] (**Input > Expiring**)
-            - [End] (**Input > Expires**)
+            - [Start] (**Input > Expires Local**)
     1. **Action > ServiceNow Core > Create Record**
         - _Table:_ Banner Announcement Mapping [sys_ux_m2m_banner_announcement]
         - _Fields:_
@@ -924,9 +922,14 @@ _Instructions:_
             - [User] (**Input > Request Item > Requested for**)
             - [Break Glass Role] (**Input > Break Glass Role**)
             - [Active] [true]
-            - [Expiration] (**7 - Break Glass Get Expirations > Expires**)
+            - [Expiration] (**7 - Break Glass Get Expirations > Expires Local**)
             - [Request Item] (**Input > Request Item**)
     1. **Subflow > Break Glass Grant Role Banner**
+        - _Expiring Local:_ (**7 - Break Glass Get Expirations > Expiring Local**)
+        - _Expires Local:_ (**7 - Break Glass Get Expirations > Expires Local**)
+        - _Request Item:_ (**Input > Request Item**)
+        - _Break Glass Role:_ (**Input > Break Glass Role**)
+        - _Expires:_ (**7 - Break Glass Get Expirations > Expires System**)
     1. **Flow Logic > Assign Subflow Outputs**
         - [Granted] [true]
         - [Message] Granted the break glass role (**Input > Break Glass Role > Name**) to (**Input > Request Item > Requested for > Name**).
@@ -1002,7 +1005,7 @@ _Instructions:_
 1. Under **Trigger**, click **Add a trigger** and under **Application** select **Service Catalog**.
 1. Click **Done**.
 1. The following instructions are adding operations under the **Actions** section. Due to the difficulty of documenting flow operations, the following sub-ordered steps represent the order of flow operations. At the start of each action there will either be the choice **Add an Action, Flow Logic, or Subflow** or a grouping of **Action**, **Flow Logic**, and **Subflow**. The step will assume general knowledge of which to select and finalizing the operation by clicking **Done**. 
-    1. **Flow Logic > Set Flow Variables**, fill in the following variables:
+    1. **Flow Logic > Set Flow Variables**
         - _Name:_ Granted Role
         - _Data:_ [false]
         - _Name:_ Failure Detected
@@ -1072,6 +1075,71 @@ _Instructions:_
 1. Under the **Process Engine** tab, fill in the following field:
     - _Flow:_ [Break Glass Roles - Catalog Item]
 1. Click **Update**.
+
+&nbsp;
+
+---
+# Break Glass Role Revocation
+\
+The break glass revocation process that removes the role(s) from the user's account is handled by a repeating flow that runs every minute. The frequency of execution is arbituary, tune as warranted.
+
+_Instructions:_
+
+1. Navigate to **Process Automation > Flow Designer**. A new tab will open for _Flow Designer_.
+1. In **Flow Designer** click **New** and select **Flow**.
+1. Under **Flow properties**, fill in the following fields:
+    - _Name:_ Break Glass Roles - Repeating Job
+    - _Description:_ Revokes break glass roles.
+    - _Run As:_ [System User]
+1. Click **Submit**.
+1. Under **Trigger**, click **Add a trigger**, select **Repeat** and fill in the following field:
+    - _Days:_ 0
+    - _h:_ 0
+    - _m:_ 1
+    - _s:_ 0
+1. Click **Done**.
+1. The following instructions are adding operations under the **Actions** section. Due to the difficulty of documenting flow operations, the following sub-ordered steps represent the order of flow operations. At the start of each action there will either be the choice **Add an Action, Flow Logic, or Subflow** or a grouping of **Action**, **Flow Logic**, and **Subflow**. The step will assume general knowledge of which to select and finalizing the operation by clicking **Done**. 
+    1. **Action > ServiceNow Core > Look Up Records**
+        - _Table:_ Break Glass User Role [u_break_glass_user_has_role]
+        - _Conditions:
+            - [Active] [is] [true] AND
+            - [Expiration] [at or before] (**Trigger - Repeat > Run Start Time UTC**)
+    1. **Flow Logic > For Each**
+        - _Items:_ (**1 - Look Up Records > Break Glass User Role Records**)
+    1. (Under 2 - For Each) **Flow Logic > Set Flow Variables**
+        - _Name:_ Banner Label
+        - _Data:_ break_glass_role.(**2 - For Each > Break Glass User Role Record > Break Glass Role > Name**).(**2 - For Each > Break Glass User Role Record > User > User ID**)
+    1. (Under 2 - For Each) **Action > ServiceNow Core > Look Up Records**
+        - _Table:_ User Role [sys_user_has_role]
+        - _Conditions:_
+            - [User] [is] (**2 - For Each > Break Glass User Role Record > User**) AND
+            - [Role] [is] (**2 - For Each > Break Glass User Role Record > Break Glass Role > Role**)
+    1. (Under 2 - For Each) **Flow Logic > For Each**
+        - _Items:_ (**4 - Look Up Records > User Role Records**)
+    1. (Under 5 - For Each) **Action > ServiceNow Core > Delete Record**
+        - _Record:_ (**5 - For Each > User Role Record**)
+    1. (Under 2 - For Each) **Action > ServiceNow Core > Look Up Records**
+        - _Table:_ Banner Announcement [sys_ux_banner_announcement]
+        - _Conditions:_ 
+            - [Label] [is] (**Flow Variables > Banner Label**)
+    1. (Under 2 - For Each) **Flow Logic > For Each**
+        - _Items:_ (**7 - Look Up Records > Banner Announcement Records**)
+    1. (Under 8 - For Each) **Action > ServiceNow Core > Delete Record**
+        - _Record:_ (**8 - For Each > Banner Announcement Record**)
+    1. (Under 2 - For Each) **Action > ServiceNow Core > Update Record**
+        - _Record:_ (**2 - For Each > Break Glass User Role Record**)
+        - _Table:_ Break Glass User Role [u_break_glass_user_has_role]
+        - _Fields:_
+            - [Active] false
+    1. (Under 2 - For Each) **Action > ServiceNow Core > Update Record**
+        - _Record:_ (**2 - For Each > Break Glass User Role Record > Request item**)
+        - _Table:_ Requested Item [sc_req_item]
+        - _Fields:_
+            - [Additional Comments] Revoking break glass role (**2 - For Each > Break Glass User Role Record > Break Glass Role > Name**)
+    1. (Under 2 - For Each) **Action > Global > Break Glass Close User Sessions**
+        - _User:_ (**2 - For Each > Break Glass User Role Record > User**)
+1. Click **Save**.
+1. Click **Activate**.
 
 &nbsp;
 
