@@ -12,22 +12,29 @@ This guide is to help ServiceNow admins setup BGRM for user roles insuring accou
 &nbsp;
 
 ---
+## Disclaimer
+\
+There have been many questions around roles and licensing pertaining to BGRM. BGRM is not about reducing licensing costs or circumventing licensing. BGRM is focused on granting ad-hoc elevated security permissions. The standard rule of thumb is when it comes to licensing is always check with your ServiceNow account representative; whatever is documented in this guide is subject to change as ServiceNow is free to change their licensing model at anytime. There can be custom roles that can have an associated license cost and there can be custom roles that have no additional licensing costs. This all depends on how solutions are configured within the instance.
+
+&nbsp;
+
+---
 ## How BGRM works
 \
-BGRM uses the existing OOTB roles and access control lists used in ServiceNow. Refer to the ServiceNow documentation for information on [roles](https://docs.servicenow.com/csh?topicname=c_Roles&version=page) and [access control lists](https://docs.servicenow.com/en-US/bundle/tokyo-platform-administration/page/administer/contextual-security/concept/access-control-rules.html)). The only difference with BGRM is you do not grant an account the role directly like you do with ServiceNow, you utilize the BGRM framework to automatically grant and revoke the role from the account.
+BGRM uses the existing OOTB roles and access control lists used in ServiceNow. Refer to the ServiceNow documentation for information on [roles](https://docs.servicenow.com/csh?topicname=c_Roles&version=page) and [access control lists](https://docs.servicenow.com/en-US/bundle/tokyo-platform-administration/page/administer/contextual-security/concept/access-control-rules.html)). The only difference with BGRM is you do not grant an account the role directly like you do with ServiceNow, you utilize the BGRM framework to automatically grant to and revoke from the user's account.
 
 A break glass role record has the following components:
 - _Name:_ The name of the break glass role. This can be the same or different from the ServiceNow role associated with the record.
 - _Description:_ Helpful description of the break glass role.
-- _Role:_ A reference to the *Role [sys_user_role]* table. This is the role that will be applied to the user's record temporarily.
+- _Group:_ A reference to the *Group [sys_user_table]* table. This group has the specific ServiceNow roles applied to it where the user will added to.
 - _User Criteria:_ A reference to the *User Criteria [user_criteria]* table. This determines if the user has access to the break glass role.
 - _Lifespan:_ The number of minutes a user can have the break glass role.
 
-After the standard ServiceNow roles and ACLs are created, a break glass role can be created pointing to the [sys_user_role] records. This creates a mapping between what roles a user can temporarily have and the users that can use them.
+After the standard ServiceNow roles and ACLs are created, then apply the roles to the designated groups. Then a break glass role can be created pointing to the Group [sys_user_group] record. This creates a mapping between what roles a user can temporarily have and the users that can use them.
 
 There is a catalog item called **Break Glass Roles** that will allow users to request access to the break glass roles listed in the *Break Glass Role [break_glass_role]* table. Each break glass role is associated with a user criteria, so only the break glass roles that user meets the user criteria with are displayed. This is the reduce overhead of authorization and approval manual steps. Once the request is made, automation provisions the break glass role for the user.
 
-In the background, once an account's break glass role has expired, the break glass role (and the associated [sys_role]) will be automatically removed from the account and the account's sessions will be forcefully terminated.
+In the background, once an account's break glass role has expired, the user's account will be automatically removed from the group and the account's sessions will be forcefully terminated.
 
 !!! note MFA with BGRM
     ServiceNow offers multi-factor authentication (MFA) with one-time password (OTP) for role based accounts. The BGRM is built around just in time authorization for security, so it would make sense to consider leveraging MFA OTP on the roles created for BGRM. That way, when a break glass role is granted to an account and the account is forced to re-login, then the account will be presented with a MFA OTP prompt for additional security based on the newly assigned role. Refer to the ServiceNow documentation for setting up [Multi-factor authentication](https://docs.servicenow.com/csh?topicname=c_MultifactorAuthentication&version=page).
@@ -37,7 +44,7 @@ In the background, once an account's break glass role has expired, the break gla
 ---
 ### BGRM versus Elevated Roles
 \
-ServiceNow does not have a break glass framework or model for roles. While it is possible to designate a role as an elevated role, role elevation restriction only remains on the platform navigation of ServiceNow, not on the portals or applications. Also, role elevation lacks the temporal aspect of security privileges.
+ServiceNow does not have a temporary model for roles; roles are provisioned until manually removed. While it is possible to designate a role as an elevated role, role elevation restriction only remains on the platform navigation of ServiceNow, not on the portals or applications. Also, role elevation lacks the temporal aspect of security privileges.
 
 &nbsp;
 
@@ -47,13 +54,13 @@ ServiceNow does not have a break glass framework or model for roles. While it is
 ServiceNow offers many ways to solve a problem or configure an operational business model. These instructions are _*a*_ way and does not represent _*the*_ way on creating a break glass role framework. The best way to use these instructions is to read through them and see how the framework can be adopted and modified to fit your organization requirements. 
 
 !!! note Update sets 
-    There is an update set that implement this guide; _Break Glass Role Management_. The update set can be found at [https://github.com/ChristopherCarver/BreakGlassRoleMgt](https://github.com/ChristopherCarver/BreakGlassRoleMgt).   
+    There is an update set that implement this guide; _Break Glass Role Management_. The update set can be found at [https://github.com/ChristopherCarver/BreakGlassRoleMgt](https://github.com/ChristopherCarver/BreakGlass).   
 
 !!! danger Modifying OOTB Tables
     This guide focuses on creating a robust framework tied closely to the out of the box (OOTB) tables already existing in ServiceNow. There are alternative implementation solutions within ServiceNow to accomplish the same result. Your mileage may vary depending on scope defined by and practices set by your organization and/or development team. This framework is meant to be as open and flexible to meet varying modifications to suit present and future requirements.
 
 !!! note Cost Impact
-    Custom tables are created in this framework and there could be a financial impact creating custom tables. ServiceNow allots a set amount of custom tables within an instance that a customer can create free of charge. After the set amount of custom tables are created, ServiceNow charges for custom tables. Talk with your ServiceNow Enterprise Account Executive to learn more.
+    Custom tables are created in this framework and there could be a financial impact creating custom tables. ServiceNow allots a set amount of custom tables within an instance that a customer can create free of charge. After the set amount of custom tables are created, ServiceNow charges for custom tables. Talk with your ServiceNow account representative to learn more.
 
 !!! note Reduce Cost Impact
     To reduce any cost impact to your organization, you can extend OOTB tables free of charge. This guide leaves it to the implementation team to determine the best course of action.
@@ -78,7 +85,7 @@ The *Break Glass Role [u_break_glass_role]* table will contain the following cus
 |-----|-----------|-
 |Name|The name of the break glass role.|
 |Description|A description of the break glass role.|
-|Role|Reference to the ServiceNow table *Role [sys_user_role]*.|
+|Group|Reference to the ServiceNow table *Group [sys_user_group]*.|
 |User Criteria|Reference to the ServiceNow table *User Criteria [user_criteria]*.|
 |Lifespan|The number of minutes an account can be granted the role; default 4 hours.|
 
@@ -109,11 +116,11 @@ _Instructions:_
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
     - _Type:_ [Reference]
-    - _Column label:_ Role
+    - _Column label:_ Group
     - _Column name:_ {*this should default to u_role*}
     - _Mandatory:_ [true]
 1. In the **Reference Specification** tab, fill in the following field:
-    - _Reference:_ Role [sys_user_role]
+    - _Reference:_ Group [sys_user_group]
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
@@ -129,10 +136,9 @@ _Instructions:_
     - _Type:_ [Integer]
     - _Column label:_ Lifespan
     - _Column name:_ {*this should default to u_lifespan*}
-1. In the record header, right-click and select **Save**.
 1. In the **Default Value** tab, fill in the following field:
     - _Default Value:_ 240
-1. Click **Update**.
+1. Click **Submit**.
 1. Click **Update**.
 
 &nbsp;
@@ -144,10 +150,10 @@ The *Break Glass Role [u_break_glass_role]* table is referenced by the *Break Gl
 
 1. In the browser URL type in **https://_{your instance}_/u_break_glass_role_list.do?sysparm_view=sys_ref_list**, where {your instance} is the name of your ServiceNow instance.
 1. Right-click in the table column header and select **Configure > List Layout**. 
-1. Under the **Selected** list, remove the **Sys ID** column; click **Sys ID** and then **<** to remove from the **Selected** list.
 1. In under the **Available** list add the following columns to the **Selected** list by selecting the name of the column and click **>**.
     - Name
     - Description
+1. If there are any other fields under in the **Selected** list, remove them by selecting the field name and clicking **<** to remove from the **Selected** list.
 1. Click **Save**.
 
 &nbsp;
@@ -164,7 +170,6 @@ The *Break Glass User Role [u_break_glass_user_has_role]* table will contain the
 |Role|Reference to the custom table *Break Glass Role [u_break_glass_role]*.|
 |Active|Designation that the account has been granted the role.|
 |Expiration|When the role is set to expire on the account.|
-|Expired|Calculated based on *Expiration*.|
 |Request item|Reference to the ServiceNow table *Requested Item [sc_req_item]*.|
 
 _Instructions:_
@@ -173,7 +178,7 @@ _Instructions:_
 1. Click **New**.
 1. Under the **Table New record** section, fill in the following fields:
     - _Label:_ Break Glass User Role 
-    - _Name:_ u_break_glass_user_role
+    - _Name:_ u_break_glass_user_has_role
     - _Add module to menu:_ [User Administration]
 1. In the record header, right-click and select **Save**.
 1. In the **Columns** table, click **New**.
@@ -200,7 +205,7 @@ _Instructions:_
     - _Column label:_ Active
     - _Column name:_ {*this should default to u_active*}
 1. In the **Default Value** tab, fill in the following field:
-    - _Default Value:_ [true]
+    - _Default Value:_ true
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
@@ -208,39 +213,6 @@ _Instructions:_
     - _Column label:_ Expiration
     - _Column name:_ {*this should default to u_expiration*}
     - _Mandatory:_ [true]
-1. Click **Submit**.
-1. In the **Columns** table, click **New**.
-1. In the **Dictionary Entry New record** section, fill in the following fields:
-    - _Type:_ [True/False]
-    - _Column label:_ Expired
-    - _Column name:_ {*this should default to u_expired*}
-1. Under **Related Links**, click **Advanced view**.
-1. In the **Calculated Value** tab, fill in the following fields:
-    - _Calculated:_ [true]
-    - _Calculation Type:_ [Script]
-    - _Calculation:_
-        ```
-        (function calculatedFieldValue(current) {
-
-            // If there is no expiration set, return false.
-            if (current.u_expiration.nil()) {
-                current.setValue('u_expired',false);
-                return false;
-            }
-        
-            var dateToday = new GlideDateTime();
-            // If the expiration is less than today's date and time, return false.
-            if (current.u_expiration > dateToday) {
-                current.setValue('u_expired',false);
-                return false;
-            }
-        
-            // Default to true
-            current.setValue('u_expired',true);
-            return true; // return the calculated value
-        
-        })(current);
-        ```
 1. Click **Submit**.
 1. In the **Columns** table, click **New**.
 1. In the **Dictionary Entry New record** section, fill in the following fields:
@@ -268,7 +240,7 @@ _Instructions:_
     - _Name:_ BreakGlassUtil
     - _API Name:_ {*this should default to global.BreakGlassUtil*}
     - _Client callable:_ [false]
-    - _Description:_ Utility operations in the support for break glass roles. See [u_break_glass_role] and [u_break_glass_user_has_role] tables. 
+    - _Description:_ Utility operations in the support for break glass roles. See *Break Glass Role [u_break_glass_role]* and *Break Glass User Role [u_break_glass_user_has_role]* tables. And the *Break Glass Roles* catalog item.
     - _Script:_
         ```
         var BreakGlassUtil = Class.create();
@@ -281,6 +253,7 @@ _Instructions:_
 
                 // get all the break glass roles
                 var breakGlassRole = new GlideRecord('u_break_glass_role');
+                breakGlassRole.addEncodedQuery("u_group.active=true");
                 breakGlassRole.query();
                 while (breakGlassRole.next()) {
                     var criteria = [];
@@ -328,16 +301,25 @@ _Instructions:_
         Only the break glass roles that are available to your account will appear in the *Role* field. 
 
         **Important:**
-        - This is a fully automated request. After your submit your request, your ServiceNow session will be forcible terminated by ServiceNow and you will have to log back into ServiceNow. Upon logging into ServiceNow your account will have the requested role temporarily.
-        - Once your temporary break glass role expires, the role will automatically be removed from your account and your ServiceNow session will be forcible terminated by ServiceNow.
+        - This is a fully automated request. After your submit your request, _your ServiceNow session will be forcible terminated by ServiceNow_ and you will have to log back into ServiceNow. Upon logging into ServiceNow your account will have the requested role temporarily.
+        - Once your temporary break glass role expires, the role will automatically be removed from your account and _your ServiceNow session will be forcible terminated by ServiceNow_.
         - If your ServiceNow session is not terminated, then check your request to determine the reason why your request was not granted. 
 
 1. In the record header, right-click and select **Save**.
 1. In the **Variables** tab, click **New**.
 1. In the **Variable New record** section, fill in the following fields:
-    - _Type:_ [List Collector]
+    - _Type:_ [Single Line Text]
     - _Mandatory:_ [true]
     - _Order:_ 100
+1. In the **Question** tab, fill in the following fields:
+    - _Question:_ Justification
+    - _Name:_ {*should default to justification*}
+1. Click **Submit**.
+1. In the **Variables** tab, click **New**.
+1. In the **Variable New record** section, fill in the following fields:
+    - _Type:_ [List Collector]
+    - _Mandatory:_ [true]
+    - _Order:_ 200
 1. In the **Question** tab, fill in the following fields:
     - _Question:_ Roles
     - _Name:_ {*should default to roles*}
@@ -353,15 +335,6 @@ _Instructions:_
         ```
         no_filter,ref_auto_completer=AJAXTableCompleter,ref_ac_columns=u_name;u_description,ref_ac_order_by=u_name
         ```
-1. Click **Update**.
-1. In the **Variables** tab, click **New**.
-1. In the **Variable New record** section, fill in the following fields:
-    - _Type:_ [Single Line Text]
-    - _Mandatory:_ [true]
-    - _Order:_ 200
-1. In the **Question** tab, fill in the following fields:
-    - _Question:_ Justification
-    - _Name:_ {*should default to justification*}
 1. Click **Submit**.
 1. Click **Update**.
 
@@ -414,7 +387,7 @@ _Instructions:_
 1. In **Flow Designer** click **New** and select **Action**.
 1. Fill in the following fields:
     -_Action name:_ Break Glass Get Expirations
-    -_Description:_ Calculate the break glass role expiring and expires date and time based on the current time and the lifespan of the role.
+    -_Description:_ Calculate the break glass role expiring and expires date and time based on the current time and the lifespan of the break glass role.
 1. Click **Submit**.
 1. Under **Action Outline**, click **Inputs**.
 1. In the **Action Inputs** section, click **Create Input** and fill in the following fields:
@@ -453,7 +426,7 @@ _Instructions:_
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
     1. Under **Output Variables**, click **Create Variable** and fill in the following fields:
-    - _Label:_ Expiring System
+    - _Label:_ Expiring Local
     - _Name:_ expiring_local
     - _Type:_ [Date/Time]
     - _Mandatory:_ [true]
@@ -505,9 +478,10 @@ _Instructions:_
 \
 The _Break Glass Grant Role Banner_ is a subflow component within the flow operations. The purpose of the subflow is to setup notification banners for the user to show that they were granted the break glass role, when the break glass role is expiring and when the break glass role has expired. 
 
-The subflow uses the ServiceNow OOTB banner feature. ServiceNow banners lack the ability to target individual accounts. To target banners for specific users, users will need unique roles applied to their accounts. This means each user account will need a unique role. This flow checks for the role *u_user_[user id]* to exist. Custom roles are discussed further down.
+The subflow uses the ServiceNow OOTB *UX Banner Announcement* feature. ServiceNow banners lack the ability to target individual accounts. To target banners for specific users, users will need unique roles applied to their accounts. This means each user account will need a unique role. This flow checks for the role *u_user_[user id]* to exist. Custom roles are discussed further down.
 
-Because custom individual roles per user are not standard practice, the subflow checks the system property *break_glass.banner* to see if the value is true or false. If true, then banners are used; else banners are not used.
+!!! note System Property
+    Because custom individual roles per user are not standard practice, the subflow checks the system property *break_glass.banner* to see if the value is true or false. If true, then banners are used; else banners are not used. The update set that accompanies this guide sets the value as false.
 
 _Instructions:_
 
@@ -515,7 +489,12 @@ _Instructions:_
 1. In **Flow Designer** click **New** and select **Subflow**.
 1. Under **Subflow properties**, fill in the following fields:
     - _Name:_ Break Glass Grant Role Banner
-    - _Description:_ Applies a new banner for the break glass role that was granted.
+    - _Description:_ 
+        ```
+        Creates three banners for the break glass role that was granted to the user.
+
+        Note: See system property break_glass.banner to enable or disable this feature.. 
+        ```
     - _Run As:_ [System User]
 1. Click **Submit**.
 1. Click **More Actions menu** (the ... on top right) and select **Flow Variables**.
@@ -560,28 +539,35 @@ _Instructions:_
         - _Name:_ User Role Name
         - _Data:_ u_user_(**Input > Request Item > Requested for > User ID**)
         - _Name:_ Banner Label
-        - _Data:_ break_glass_role.(**Input > Break Glass Role > Name**.**Input > Request Item > Requested for > User ID**)
+        - _Data:_ break_glass_role.(**Input > Break Glass Role > Name**).(**Input > Request Item > Requested for > User ID**)
     1. **Action > ServiceNow Core > Look Up Records**
-        - _Table:_ Banner Announcements [sys_ux_banner_announcement]
-        - _Conditions:_ [**Label**] [is] (**Flow Variables > Banner Label**)
+        - _Table:_ Banner Announcement [sys_ux_banner_announcement]
+        - _Conditions:_ 
+            - [**Label**] [is] (**Flow Variables > Banner Label**)
+        - _Don't fail on error:_ true
     1. **Flow Logic > For Each**
         - _Items:_ (**2 - Lookup Records > Banner Announcement Records**)
     1. (Under *3 - For Each*) **Action > ServiceNow Core > Delete Record**
         - _Record:_ (**3 - For Each > Banner Announcement Record**)
     1. **Action > ServiceNow Core > Look Up Record**
         - _Table:_ System Property [sys_properties]
-        - _Conditions:_ [Name] [is] break_glass.banner
+        - _Conditions:_ 
+            - [Name] [is] break_glass.banner
     1. **Flow Logic > If**
-        - _Condition Label:_ break_glass.banner is false
-        - _Condition 1:_ (**5 - Look Up Record > System Property Record > Value**) [is] [false]
-    1. (Under *6 - If*) **Flow Logic > End Flow**
+        - _Condition Label:_ break_glass.banner is false or not found
+        - _Condition 1:_ 
+            - (**5 - Look Up Record > System Property Record > Value**) [is] [false] OR
+            - (**5 - Look Up Record > Status**) [is] [Error]
+    1. (Under *6 - If*) **Flow Logic > End Subflow**
     1. **Action > ServiceNow Core > Look Up Record**
         - _Table:_ Role [sys_user_role]
-        - _Conditions:_ [Name] [starts with] (**Flow Variables > User Role Name**)
+        - _Conditions:_ 
+            - [Name] [is] (**Flow Variables > User Role Name**)
     1. **Flow Logic > If**
         - _Condition Label:_ user does not have a private role
-        - _Condition 1:_ (**8 - Look Up Record > Status**) [is] [Error]
-    1. (Under *9 - If*) **Flow Logic > End Flow**
+        - _Condition 1:_ 
+            - (**8 - Look Up Record > Status**) [is] [Error]
+    1. (Under *9 - If*) **Flow Logic > End Subflow**
     1. **Action > ServiceNow Core > Create Record**
         - _Table:_ Banner Announcement [sys_ux_banner_announcement]
         - _Fields:_
@@ -603,7 +589,7 @@ _Instructions:_
                 var now = new GlideDateTime();
                 return now.getDisplayValue();
                 ```
-            - [End] **Input > Expiring**
+            - [End] **Input > Expiring Local**
     1. **Action > ServiceNow Core > Create Record**
         - _Table:_ Banner Announcement Mapping [sys_ux_m2m_banner_announcement]
         - _Fields:_
@@ -758,6 +744,9 @@ A large section of the code is commented out. This is intentional and meant for 
 
 The following business rule will create a unique role for new user records.
 
+!!! note Deactivated Business Rules
+    The update set that accompanies this guide contains the following deactivated business rules. You will need to activate these business rules, if you wish to use them.
+
 _Instructions:_
 
 1. Navigate to **System Definition > Business Rules**.
@@ -895,25 +884,26 @@ _Instructions:_
             - [Break Glass Role] [is] (**Input > Break Glass Role**) AND 
             - [User] [is] (**Input > Request Item > Requested for**)
     1. **Flow Logic > For Each**
-        - _Items:_ (**1 - Look Up Recods > Break Glass User Role Records**)
+        - _Items:_ (**1 - Look Up Records > Break Glass User Role Records**)
     1. (Under 2 - For Each) **Action > ServiceNow Core > Update Record**
         - _Record:_ (**2 - For Each > Break Glass User Role Record**)
         - _Table:_ Break Glass User Role [u_break_glass_user_has_role]
         - _Fields:_ 
             - [Active] [false]
     1. **Action > ServiceNow Core > Look Up Records**
-        - _Table:_ User Role [sys_user_has_role]
+        - _Table:_ Group Member [sys_user_grmember]
         - _Conditions:_
-            - [User] [is] (**Input > Request Item > Requested for**) AND
-            - [Role] [is] (**Input > Break Glass Role > Role**)
+            - [Group] [is] (**Input > Break Glass Role > Group**) AND
+            - [User] [is] (**Input > Request Item > Requested for**)
     1. **Flow Logic > If**
-        - _Condition Label:_ the user does not have the system role
-        - _Condition 1:_ (**4 - Look Up Records > Count**) [is] 0
+        - _Condition Label:_ the user is not a member of the group
+        - _Condition 1:_ 
+            - (**4 - Look Up Records > Count**) [is] 0
     1. (Under 5 - If) **Action > ServiceNow Core > Create Record**
-        - _Table:_ User Role [sys_user_has_role]
+        - _Table:_ Group Member [sys_user_grmember]
         - _Fields:_
-            - [User] (**Input > Request Item > Requested for**)
-            - [Role] (**Input > Break Glass Role > Role**)
+            - [Group] (**Input > Break Glass Role > Group**)
+            - [User]  (**Input > Request Item > Requested for**)
     1. **Action > Global > Break Glass Get Expirations**
         - _Break Glass Role:_ **Input > Break Glass Role**
     1. **Action > ServiceNow Core > Create Record**
@@ -925,17 +915,18 @@ _Instructions:_
             - [Expiration] (**7 - Break Glass Get Expirations > Expires Local**)
             - [Request Item] (**Input > Request Item**)
     1. **Subflow > Break Glass Grant Role Banner**
-        - _Expiring Local:_ (**7 - Break Glass Get Expirations > Expiring Local**)
-        - _Expires Local:_ (**7 - Break Glass Get Expirations > Expires Local**)
         - _Request Item:_ (**Input > Request Item**)
         - _Break Glass Role:_ (**Input > Break Glass Role**)
+        - _Expiring Local:_ (**7 - Break Glass Get Expirations > Expiring Local**)
+        - _Expires Local:_ (**7 - Break Glass Get Expirations > Expires Local**)
         - _Expires:_ (**7 - Break Glass Get Expirations > Expires System**)
     1. **Flow Logic > Assign Subflow Outputs**
         - [Granted] [true]
-        - [Message] Granted the break glass role (**Input > Break Glass Role > Name**) to (**Input > Request Item > Requested for > Name**).
+        - [Message] Granted the break glass role ,(**Input > Break Glass Role > Name**)' to (**Input > Request Item > Requested for > Name**).
+    1. Toggle **ERROR HANDLER** to **true**.
     1. (Under ERROR HANDLER) **Flow Logic > Assign Subflow Outputs**
         - [Granted] [false]
-        - [Message] An unexpected error occurred granting the break glass role (**Input > Break Glass Role > Name**) to (**Input > Request Item > Requested for > Name**).
+        - [Message] An unexpected error occurred granting the break glass role '(**Input > Break Glass Role > Name**)' to (**Input > Request Item > Requested for > Name**).
 1. Click **Save**.
 1. Click **Publish**.
 
@@ -988,7 +979,7 @@ _Instructions:_
 1. In **Flow Designer** click **New** and select **Flow**.
 1. In the **Flow properties** window, fill in the following fields:
     - _Flow name:_ Break Glass Roles - Catalog Item
-    - _Description:_ Processes Break Glass Role service requests.
+    - _Description:_ Processes Break Glass Roles catalog item service requests.
     - _Application:_ [Global]
     - _Run As:_ [System User]
 1. Click **Submit**.
@@ -1011,7 +1002,7 @@ _Instructions:_
         - _Name:_ Failure Detected
         - _Data:_ [false]
     1. **Action > ServiceNow Core > Get Catalog Variables**, fill in the following fields:
-        - _Submitted Request [Requested Item]:_ (**Trigger - Service Catalog > Requested Item Record**)
+        - _Submitted Request:_ (**Trigger - Service Catalog > Requested Item Record**)
         - _Template Catalog Items and Variables Sets [Catalog Items and Variable Sets]:_ [Break Glass Roles]
         - _Catalog Variables:_ {Under **Available** list click **roles** and then **>** to move to **Selected**.}
     1. **Action > ServiceNow Core > Look Up Records**
@@ -1022,8 +1013,8 @@ _Instructions:_
         - _Items:_ (**3 - Look Up Records > Break Glass Role Records**)
     1. (Under 4 - For Each) **Subflow > Break Glass Grant Role**
         - _Wait For Completion:_ [true]
-        - _Request Item [Requested Item]:_ (**Trigger - Service Catalog > Requested Item Record**)
-        - _Break Glass Role [Break Glass Role]:_ (**4 - For Each > Break Glass Role Record**)
+        - _Request Item:_ (**Trigger - Service Catalog > Requested Item Record**)
+        - _Break Glass Role:_ (**4 - For Each > Break Glass Role Record**)
     1. (Under 4 - For Each) **Action > ServiceNow Core > Update Record**
         - _Record:_ (**Trigger - Service Catalog > Requested Item Record**)
         - _Table:_ Requested Item [sc_rec_item]
@@ -1092,6 +1083,12 @@ _Instructions:_
     - _Description:_ Revokes break glass roles.
     - _Run As:_ [System User]
 1. Click **Submit**.
+1. Click **More Actions menu** (the ... on top right) and select **Flow Variables**.
+1. Click **Add new input** (the + ) and fill in the following fields:
+    - _Label:_ Banner Label
+    - _Name:_ banner_label
+    - _Type:_ [String]
+1. Close the **Flow Variables** window. 
 1. Under **Trigger**, click **Add a trigger**, select **Repeat** and fill in the following field:
     - _Days:_ 0
     - _h:_ 0
@@ -1110,12 +1107,12 @@ _Instructions:_
         - _Name:_ Banner Label
         - _Data:_ break_glass_role.(**2 - For Each > Break Glass User Role Record > Break Glass Role > Name**).(**2 - For Each > Break Glass User Role Record > User > User ID**)
     1. (Under 2 - For Each) **Action > ServiceNow Core > Look Up Records**
-        - _Table:_ User Role [sys_user_has_role]
+        - _Table:_ Group Member [sys_user_grmember]
         - _Conditions:_
-            - [User] [is] (**2 - For Each > Break Glass User Role Record > User**) AND
-            - [Role] [is] (**2 - For Each > Break Glass User Role Record > Break Glass Role > Role**)
+            - [Group] [is] (**2 - For Each > Break Glass User Role Record > Break Glass Role > Group**) AND
+            - [User] [is] (**2 - For Each > Break Glass User Role Record > User**)
     1. (Under 2 - For Each) **Flow Logic > For Each**
-        - _Items:_ (**4 - Look Up Records > User Role Records**)
+        - _Items:_ (**4 - Look Up Records > Group Member Records**)
     1. (Under 5 - For Each) **Action > ServiceNow Core > Delete Record**
         - _Record:_ (**5 - For Each > User Role Record**)
     1. (Under 2 - For Each) **Action > ServiceNow Core > Look Up Records**
@@ -1135,11 +1132,27 @@ _Instructions:_
         - _Record:_ (**2 - For Each > Break Glass User Role Record > Request item**)
         - _Table:_ Requested Item [sc_req_item]
         - _Fields:_
-            - [Additional Comments] Revoking break glass role (**2 - For Each > Break Glass User Role Record > Break Glass Role > Name**)
+            - [Additional Comments] Revoked break glass role '(**2 - For Each > Break Glass User Role Record > Break Glass Role > Name**)'.
     1. (Under 2 - For Each) **Action > Global > Break Glass Close User Sessions**
         - _User:_ (**2 - For Each > Break Glass User Role Record > User**)
 1. Click **Save**.
 1. Click **Activate**.
+
+&nbsp;
+
+---
+# Next Steps
+
+With BGRM setup, the next steps will be to configure the break glass roles. 
+
+_Instructions:_
+
+1. If you have not already, create the ServiceNow roles that will be used. Standard OOTB roles can be used.
+1. If you have not already, create the ServiceNow groups that will be used and assign the appropriate roles to the groups. 
+1. Navigate to **User Administration > Break Glass Roles** and create new break glass role records.
+
+!!! note Deactivated Groups
+    As a reminder, you can deactivate groups preventing users from selecting break glass roles where groups are deactivated. 
 
 &nbsp;
 
